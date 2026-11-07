@@ -28,6 +28,7 @@ import { ASAR_FILE } from "./common";
 
 const API_BASE = `https://api.github.com/repos/${gitRemote}`;
 let PendingUpdate: string | null = null;
+let PendingHash = "";
 
 async function githubGet<T = any>(endpoint: string) {
     return fetchJson<T>(API_BASE + endpoint, {
@@ -44,7 +45,8 @@ async function listUpdates() {
     const isOutdated = await fetchUpdate();
     if (!isOutdated) return [];
 
-    const data = await githubGet(`/compare/${gitHash}...HEAD`);
+    const data = await githubGet(`/compare/${gitHash}...HEAD`).catch(() => null);
+    if (!data) return [{ hash: PendingHash, author: "", message: "Changelog unavailable" }];
 
     return data.commits.map((c: any) => ({
         hash: c.sha,
@@ -62,6 +64,7 @@ async function fetchUpdate() {
 
     const asset = data.assets.find(a => a.name === ASAR_FILE);
     PendingUpdate = asset.browser_download_url;
+    PendingHash = hash;
 
     return true;
 }
