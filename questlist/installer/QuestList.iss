@@ -5,6 +5,9 @@
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
+#ifndef FileVersion
+  #define FileVersion "0.0.0.0"
+#endif
 #ifndef BuildDir
   #define BuildDir "..\repair\bin\Release\net48"
 #endif
@@ -38,7 +41,7 @@ ShowLanguageDialog=auto
 CloseApplications=yes
 Compression=lzma2/max
 SolidCompression=yes
-VersionInfoVersion={#AppVersion}
+VersionInfoVersion={#FileVersion}
 VersionInfoProductName=QuestList
 
 [Languages]
