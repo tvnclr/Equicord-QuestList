@@ -229,7 +229,7 @@
                                     </StackPanel>
                                 </DockPanel>
                                 <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,24,0,0" Height="520">
-                                    <TextBox x:Name="LogBox" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="{StaticResource Text2}" FontFamily="{StaticResource Mono}" FontSize="12" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                                    <TextBox x:Name="LogBox" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="{StaticResource Text2}" FontFamily="{StaticResource Mono}" FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" />
                                 </Border>
                             </StackPanel>
 
