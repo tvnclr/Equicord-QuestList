@@ -1,0 +1,274 @@
+/* QuestList — só estiliza elementos do próprio plugin (prefixo vc-questlist-) */
+
+/*
+ * Botão na lista de servidores: mesmo tamanho e formato do botão do Discord logo acima
+ * (quadrado de 40px com cantos arredondados). Sem margem própria: o espaço acima vem do
+ * botão do Discord e o de baixo vem do separador, então fica centralizado entre os dois.
+ */
+.vc-questlist-button-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.vc-questlist-button-holder {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    outline: none;
+}
+
+.vc-questlist-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--interactive-icon-default, #dbdbf9);
+    background: rgb(255 255 255 / 11%);
+    transition: background-color 0.15s ease, color 0.15s ease;
+    mask-repeat: no-repeat;
+}
+
+.vc-questlist-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.vc-questlist-button-holder:hover .vc-questlist-button,
+.vc-questlist-button-holder:focus-visible .vc-questlist-button {
+    color: #fff;
+    background: var(--background-brand, var(--brand-500, #5865f2));
+}
+
+/* Contador de quests disponíveis: formato do contador do Discord, na cor do botão */
+.vc-questlist-badge {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    box-sizing: border-box;
+    height: 16px;
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    font-family: var(--font-primary, "gg sans", sans-serif);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    background: var(--background-brand, var(--brand-500, #5865f2));
+    pointer-events: none;
+}
+
+.vc-questlist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0 12px;
+}
+
+.vc-questlist-empty {
+    padding: 24px 8px;
+    text-align: center;
+    color: var(--text-muted, #949ba4);
+}
+
+.vc-questlist-row {
+    --vc-questlist-color: 60 63 69;
+
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 8px;
+    border-left: 4px solid rgb(var(--vc-questlist-color));
+    background: var(--background-secondary, #2b2d31);
+    overflow: hidden;
+}
+
+.vc-questlist-row-colored {
+    background:
+        linear-gradient(90deg, rgb(var(--vc-questlist-color) / 55%), rgb(var(--vc-questlist-color) / 18%)),
+        var(--background-secondary, #2b2d31);
+}
+
+.vc-questlist-tile {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: rgb(0 0 0 / 25%);
+}
+
+.vc-questlist-main {
+    min-width: 0;
+}
+
+.vc-questlist-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--header-primary, #f2f3f5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vc-questlist-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted, #b5bac1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vc-questlist-reward {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-normal, #dbdee1);
+    white-space: nowrap;
+}
+
+.vc-questlist-status {
+    min-width: 84px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    color: #fff;
+    background: rgb(0 0 0 / 30%);
+}
+
+.vc-questlist-status-expired,
+.vc-questlist-status-ignored {
+    color: rgb(255 255 255 / 70%);
+}
+
+.vc-questlist-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgb(0 0 0 / 30%);
+}
+
+.vc-questlist-bar-fill {
+    height: 100%;
+    background: var(--brand-500, #5865f2);
+}
+
+/* Barra de busca (fica presa no topo ao rolar) */
+.vc-questlist-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 8px;
+    background: var(--modal-background, var(--background-primary, #313338));
+}
+
+.vc-questlist-search {
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border-subtle, rgb(255 255 255 / 10%));
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-normal, #dbdee1);
+    background: var(--input-background, var(--background-tertiary, #1e1f22));
+    outline: none;
+}
+
+.vc-questlist-search:focus {
+    border-color: var(--brand-500, #5865f2);
+}
+
+.vc-questlist-toggle {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--border-subtle, rgb(255 255 255 / 10%));
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    color: var(--text-normal, #dbdee1);
+    background: var(--background-secondary, #2b2d31);
+}
+
+.vc-questlist-toggle-on {
+    border-color: var(--brand-500, #5865f2);
+}
+
+/* Botões de ação (Questify / Quest Home) */
+.vc-questlist-action {
+    min-width: 96px;
+    height: 26px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    color: #fff;
+    background: var(--brand-500, #5865f2);
+}
+
+.vc-questlist-action:hover {
+    filter: brightness(1.12);
+}
+
+.vc-questlist-action:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.vc-questlist-action-running {
+    background: var(--yellow-360, #f0b232);
+    color: #1e1f22;
+}
+
+.vc-questlist-action-claim {
+    background: var(--green-360, #23a55a);
+}
+
+.vc-questlist-action-open {
+    background: rgb(0 0 0 / 35%);
+}
+
+/* Botão nativo do card da Quest Home (Claim Reward, Launch Mission...) */
+.vc-questlist-native {
+    width: 150px;
+}
+
+/* Abre a quest na Quest Home (rola até o card e destaca) */
+.vc-questlist-jump {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 26px;
+    cursor: pointer;
+    color: rgb(255 255 255 / 75%);
+    background: rgb(0 0 0 / 30%);
+}
+
+.vc-questlist-jump:hover {
+    color: #fff;
+    background: rgb(0 0 0 / 50%);
+}
