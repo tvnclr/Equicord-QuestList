@@ -22,6 +22,7 @@ concurrency:
 env:
     FORCE_COLOR: true
     GH_TOKEN: ${{ github.token }}
+    GH_REPO: ${{ github.repository }}
 
 jobs:
     build:
