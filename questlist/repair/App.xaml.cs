@@ -88,7 +88,7 @@ public partial class App : Application
                 "off" or "0" or "false" => (bool?)false,
                 _ => null,
             };
-            operation = Operations.Repair(Has(args, "--install"), questify, start);
+            operation = Operations.Repair(Has(args, "--install"), questify, start, Value(args, "--release"));
         }
         else if (Has(args, "--official"))
             operation = Operations.Official(start);

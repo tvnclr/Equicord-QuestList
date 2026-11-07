@@ -109,9 +109,9 @@ static class Operations
         return Task.CompletedTask;
     });
 
-    static Step DownloadStep(string repo) => new(Strings.T("step_download"), async s =>
+    static Step DownloadStep(string repo, string? tag = null) => new(Strings.T("step_download"), async s =>
     {
-        var release = await Releases.LatestAsync(repo).ConfigureAwait(false);
+        var release = await Releases.LatestAsync(repo, tag).ConfigureAwait(false);
         var installed = AsarInfo.Read(Paths.EquicordAsar);
         if (installed.Hash == release.Hash && installed.IsQuestList == (repo == Paths.Repo))
         {
@@ -152,7 +152,7 @@ static class Operations
         return Task.CompletedTask;
     });
 
-    public static Operation Repair(bool install, bool? questify, bool start)
+    public static Operation Repair(bool install, bool? questify, bool start, string? tag = null)
     {
         var changes = new Dictionary<string, bool> { ["QuestList"] = true };
         if (questify != null) changes["Questify"] = questify.Value;
@@ -163,7 +163,7 @@ static class Operations
             {
                 CloseStep(_ => { }),
                 BackupStep(install ? "install" : "repair"),
-                DownloadStep(Paths.Repo),
+                DownloadStep(Paths.Repo, tag),
                 InjectStep(),
                 PluginsStep(Strings.T("step_plugins"), changes),
                 StartStep(() => start),

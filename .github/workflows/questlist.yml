@@ -135,6 +135,7 @@ jobs:
                   "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" -Q \
                       -DAppVersion=${{ steps.version.outputs.version }} \
                       -DFileVersion=${{ steps.version.outputs.numeric }} \
+                      $([ "${{ steps.version.outputs.prerelease }}" = "true" ] && echo "-DReleaseTag=${{ steps.version.outputs.tag }}") \
                       questlist/installer/QuestList.iss
                   test -s questlist/installer/Output/QuestList-Setup.exe
 

@@ -8,6 +8,11 @@
 #ifndef FileVersion
   #define FileVersion "0.0.0.0"
 #endif
+#ifdef ReleaseTag
+  #define ReleaseArg " --release " + ReleaseTag
+#else
+  #define ReleaseArg ""
+#endif
 #ifndef BuildDir
   #define BuildDir "..\repair\bin\Release\net48"
 #endif
@@ -140,7 +145,7 @@ begin
   ResultFile := ExpandConstant('{tmp}\install-result.txt');
   WizardForm.StatusLabel.Caption := CustomMessage('Patching');
   WizardForm.ProgressGauge.Style := npbstMarquee;
-  InstallOk := Exec(ExpandConstant('{app}\QuestListRepair.exe'), '--install --questify=' + Questify + ' --no-start --out "' + ResultFile + '"', '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 0);
+  InstallOk := Exec(ExpandConstant('{app}\QuestListRepair.exe'), '--install --questify=' + Questify + ' --no-start{#ReleaseArg} --out "' + ResultFile + '"', '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 0);
   WizardForm.ProgressGauge.Style := npbstNormal;
   if InstallOk then Exit;
   Detail := SysErrorMessage(Code);

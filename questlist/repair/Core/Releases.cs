@@ -31,9 +31,10 @@ static class Releases
         return http;
     }
 
-    public static async Task<Release> LatestAsync(string repo)
+    public static async Task<Release> LatestAsync(string repo, string? tag = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repo}/releases/latest");
+        var path = tag == null ? "latest" : "tags/" + Uri.EscapeDataString(tag);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repo}/releases/{path}");
         request.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var response = await Http.SendAsync(request).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
