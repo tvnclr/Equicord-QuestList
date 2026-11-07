@@ -152,7 +152,7 @@ static class Operations
         return Task.CompletedTask;
     });
 
-    public static Operation Repair(bool install, bool? questify, bool start, string? tag = null)
+    public static Operation Repair(bool install, bool? questify, bool start)
     {
         var changes = new Dictionary<string, bool> { ["QuestList"] = true };
         if (questify != null) changes["Questify"] = questify.Value;
@@ -163,11 +163,30 @@ static class Operations
             {
                 CloseStep(_ => { }),
                 BackupStep(install ? "install" : "repair"),
-                DownloadStep(Paths.Repo, tag),
+                DownloadStep(Paths.Repo),
                 InjectStep(),
                 PluginsStep(Strings.T("step_plugins"), changes),
                 StartStep(() => start),
             });
+    }
+
+    public static Operation Install(bool questify, string? tag, bool start)
+    {
+        var steps = new List<Step>
+        {
+            new(Strings.T("step_copy"), _ =>
+            {
+                Setup.CopyFiles();
+                return Task.CompletedTask;
+            }),
+            CloseStep(_ => { }),
+            BackupStep("install"),
+            DownloadStep(Paths.Repo, tag),
+            InjectStep(),
+            PluginsStep(Strings.T("step_plugins"), new Dictionary<string, bool> { ["QuestList"] = true, ["Questify"] = questify }),
+        };
+        if (start) steps.Add(StartStep(() => true));
+        return new Operation(Strings.T("op_install"), Strings.T("activity_installed"), steps);
     }
 
     public static Operation Official(bool start)

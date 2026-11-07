@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net.Http" />
@@ -35,6 +36,7 @@
   <ItemGroup>
     <Resource Include="Fonts\*.ttf" />
     <Resource Include="..\branding\QuestList.ico" Link="Assets\QuestList.ico" />
+    <Resource Include="Assets\symbol.png" />
   </ItemGroup>
 
 </Project>

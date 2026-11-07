@@ -129,15 +129,9 @@ jobs:
                   Get-Content strings.txt
                   exit $p.ExitCode
 
-            - name: Build the installer
+            - name: Make the installer
               if: steps.sync.outputs.skip != 'true'
-              run: |
-                  "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" -Q \
-                      -DAppVersion=${{ steps.version.outputs.version }} \
-                      -DFileVersion=${{ steps.version.outputs.numeric }} \
-                      $([ "${{ steps.version.outputs.prerelease }}" = "true" ] && echo "-DReleaseTag=${{ steps.version.outputs.tag }}") \
-                      questlist/installer/QuestList.iss
-                  test -s questlist/installer/Output/QuestList-Setup.exe
+              run: cp questlist/repair/bin/Release/net48/QuestListRepair.exe QuestList-Setup.exe
 
             - name: Release
               if: steps.sync.outputs.skip != 'true'
@@ -151,9 +145,9 @@ jobs:
                       flags="--latest"
                   fi
                   if gh release view "$tag" > /dev/null 2>&1; then
-                      gh release upload "$tag" dist/desktop.asar questlist/installer/Output/QuestList-Setup.exe --clobber
+                      gh release upload "$tag" dist/desktop.asar QuestList-Setup.exe --clobber
                   else
-                      gh release create "$tag" dist/desktop.asar questlist/installer/Output/QuestList-Setup.exe \
+                      gh release create "$tag" dist/desktop.asar QuestList-Setup.exe \
                           --target "${{ steps.version.outputs.head }}" \
                           --title "${{ steps.version.outputs.title }}" \
                           --notes "$notes" $flags

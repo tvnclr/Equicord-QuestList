@@ -19,10 +19,17 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
-        if (args.Length == 0)
+        if (e.Args.Length == 0)
         {
-            new MainWindow().Show();
+            if (Setup.IsSetup) new SetupWindow().Show();
+            else new MainWindow().Show();
+            return;
+        }
+        if (Has(e.Args, "--uninstall") && !Has(e.Args, "--quiet"))
+        {
+            var window = new MainWindow();
+            window.Loaded += (_, _) => window.AskUninstall();
+            window.Show();
             return;
         }
 
@@ -71,38 +78,21 @@ public partial class App : Application
             return 0;
         }
 
-        if (Has(args, "--start-discord"))
+        var questify = Value(args, "--questify") switch
         {
-            var discord = Discord.Find();
-            if (discord == null) return 1;
-            Discord.Start(discord);
-            return 0;
-        }
-
+            "on" or "1" or "true" => true,
+            "off" or "0" or "false" => (bool?)false,
+            _ => null,
+        };
         Operation? operation = null;
-        if (Has(args, "--install") || Has(args, "--repair"))
-        {
-            var questify = Value(args, "--questify") switch
-            {
-                "on" or "1" or "true" => true,
-                "off" or "0" or "false" => (bool?)false,
-                _ => null,
-            };
-            operation = Operations.Repair(Has(args, "--install"), questify, start, Value(args, "--release"));
-        }
+        if (Has(args, "--install"))
+            operation = Operations.Install(questify == true, Value(args, "--release") ?? Setup.ReleaseTag, start);
+        else if (Has(args, "--repair"))
+            operation = Operations.Repair(false, questify, start);
         else if (Has(args, "--official"))
             operation = Operations.Official(start);
         else if (Has(args, "--uninstall"))
-        {
-            var marker = Path.Combine(Paths.QuestListDir, "uninstall-done");
-            if (Has(args, "--skip-if-done") && File.Exists(marker))
-            {
-                File.Delete(marker);
-                Log.Write("Uninstall already done from the app");
-                return 0;
-            }
             operation = Operations.Uninstall(Has(args, "--remove-equicord"), start);
-        }
 
         if (operation == null)
         {
@@ -111,6 +101,7 @@ public partial class App : Application
         }
 
         var ok = await operation.RunAsync();
+        if (ok && Has(args, "--uninstall")) Setup.RemoveFiles();
         if (output != null) File.WriteAllText(output, (ok ? "ok" : "failed: " + operation.Error) + Environment.NewLine + Snapshot.Take().ToJson(), Encoding.UTF8);
         return ok ? 0 : 1;
     }
