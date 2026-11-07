@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -48,7 +49,9 @@ static class Releases
             .FirstOrDefault(a => (string)a["name"] == "desktop.asar")
             ?? throw new IOException(Strings.T("err_no_asset", repo));
 
-        return new Release(repo, tag, name.Substring(name.LastIndexOf(' ') + 1), (string)asset["browser_download_url"], Convert.ToInt64(asset["size"]));
+        var last = name.Substring(name.LastIndexOf(' ') + 1);
+        var hash = Regex.IsMatch(last, "^[0-9a-f]{40}$") ? last : (string)data["target_commitish"];
+        return new Release(repo, tag, hash, (string)asset["browser_download_url"], Convert.ToInt64(asset["size"]));
     }
 
     public static async Task DownloadAsync(Release release, string destination, IProgress<double>? progress)
