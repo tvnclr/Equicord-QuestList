@@ -71,6 +71,14 @@ public partial class App : Application
             return 0;
         }
 
+        if (Has(args, "--start-discord"))
+        {
+            var discord = Discord.Find();
+            if (discord == null) return 1;
+            Discord.Start(discord);
+            return 0;
+        }
+
         Operation? operation = null;
         if (Has(args, "--install") || Has(args, "--repair"))
         {
