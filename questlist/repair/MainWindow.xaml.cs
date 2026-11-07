@@ -9,12 +9,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 using QuestListRepair.Core;
 
@@ -107,7 +105,7 @@ public partial class MainWindow : Window
         LogSub.Text = Strings.T("log_sub");
         OpenLogsButton.Content = Strings.T("btn_open_folder");
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0";
+        var version = Setup.Version;
         AboutTitle.Text = Strings.T("about_title");
         AboutVersion.Text = Strings.T("about_version", version);
         AboutBody.Text = Strings.T("about_body");
@@ -191,28 +189,7 @@ public partial class MainWindow : Window
         Canvas.SetTop(Orb2, ActualHeight - 180);
     }
 
-    void AnimateOrbs()
-    {
-        if (!SystemParameters.ClientAreaAnimation) return;
-        void Drift(DependencyObject target, DependencyProperty property, double to, double seconds, bool reverse)
-        {
-            var animation = new DoubleAnimation(reverse ? to : 0, reverse ? 0 : to, TimeSpan.FromSeconds(seconds))
-            {
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
-            };
-            ((Animatable)target).BeginAnimation(property, animation);
-        }
-        Drift(Orb1Move, TranslateTransform.XProperty, -90, 24, false);
-        Drift(Orb1Move, TranslateTransform.YProperty, 70, 24, false);
-        Drift(Orb1Scale, ScaleTransform.ScaleXProperty, 1.18, 24, false);
-        Drift(Orb1Scale, ScaleTransform.ScaleYProperty, 1.18, 24, false);
-        Drift(Orb2Move, TranslateTransform.XProperty, 110, 31, true);
-        Drift(Orb2Move, TranslateTransform.YProperty, -60, 31, true);
-        Drift(Orb2Scale, ScaleTransform.ScaleXProperty, 1.15, 31, true);
-        Drift(Orb2Scale, ScaleTransform.ScaleYProperty, 1.15, 31, true);
-    }
+    void AnimateOrbs() => Ui.AnimateOrbs(Orb1Move, Orb1Scale, Orb2Move, Orb2Scale);
 
     async Task RefreshAsync()
     {
@@ -486,44 +463,8 @@ public partial class MainWindow : Window
 
     void RenderSteps(Operation operation)
     {
-        var track = ProgressTrack.ActualWidth;
-        ProgressFill.Width = Math.Max(0, track * operation.Progress);
-        StepsList.Children.Clear();
-        foreach (var step in operation.Steps)
-        {
-            var dock = new DockPanel { Margin = new Thickness(16, 10, 16, 10) };
-            var marker = new Grid { Width = 24, Height = 24 };
-            switch (step.State)
-            {
-                case StepState.Done:
-                case StepState.Skipped:
-                    marker.Children.Add(new Border { CornerRadius = new CornerRadius(12), Background = step.State == StepState.Done ? Res("SuccessSoft") : Res("Elevated") });
-                    marker.Children.Add(Icons.Make(Icons.Check, step.State == StepState.Done ? Res("Success") : Res("Text2"), 14, 3));
-                    break;
-                case StepState.Running:
-                    marker.Children.Add(new Border { CornerRadius = new CornerRadius(12), BorderBrush = Res("AccentFg"), BorderThickness = new Thickness(2) });
-                    marker.Children.Add(new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4), Background = Res("AccentFg") });
-                    break;
-                case StepState.Failed:
-                    marker.Children.Add(new Border { CornerRadius = new CornerRadius(12), Background = Res("AccentSoft") });
-                    marker.Children.Add(Icons.Make(Icons.Cross, Res("AccentFg"), 14, 3));
-                    break;
-                default:
-                    marker.Children.Add(new Border { CornerRadius = new CornerRadius(12), BorderBrush = Res("Line"), BorderThickness = new Thickness(2) });
-                    break;
-            }
-            DockPanel.SetDock(marker, Dock.Left);
-            dock.Children.Add(marker);
-            dock.Children.Add(new TextBlock
-            {
-                Text = step.Title,
-                Style = (Style)Application.Current.Resources["Item"],
-                Foreground = step.State == StepState.Pending ? Res("Text2") : Res("Text"),
-                Margin = new Thickness(12, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-            StepsList.Children.Add(dock);
-        }
+        ProgressFill.Width = Math.Max(0, ProgressTrack.ActualWidth * operation.Progress);
+        Ui.RenderSteps(StepsList, operation);
     }
 
     void ProgressBack_Click(object sender, RoutedEventArgs e)
@@ -544,23 +485,19 @@ public partial class MainWindow : Window
         ShowDialog(Strings.T("dlg_official_title"), Strings.T("dlg_official_body"), Strings.T("dlg_official_ok"),
             () => _ = RunAsync(Operations.Official(true)));
 
-    void Uninstall_Click(object sender, RoutedEventArgs e)
+    void Uninstall_Click(object sender, RoutedEventArgs e) => AskUninstall();
+
+    public void AskUninstall()
     {
         var keep = Option(Strings.T("opt_keep"), Strings.T("opt_keep_sub"), true);
         var remove = Option(Strings.T("opt_remove"), Strings.T("opt_remove_sub"), false);
         ShowDialog(Strings.T("dlg_uninstall_title"), Strings.T("dlg_uninstall_body"), Strings.T("dlg_uninstall_ok"),
-            () => _ = RunAsync(Operations.Uninstall(remove.IsChecked == true, true), LaunchAppUninstaller),
+            () => _ = RunAsync(Operations.Uninstall(remove.IsChecked == true, true), () =>
+            {
+                Setup.RemoveFiles();
+                Close();
+            }),
             new[] { keep, remove });
-    }
-
-    void LaunchAppUninstaller()
-    {
-        var uninstaller = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe");
-        if (!File.Exists(uninstaller)) return;
-        Directory.CreateDirectory(Paths.QuestListDir);
-        File.WriteAllText(Path.Combine(Paths.QuestListDir, "uninstall-done"), DateTime.Now.ToString("s"));
-        Process.Start(new ProcessStartInfo(uninstaller, "/SILENT") { UseShellExecute = true });
-        Close();
     }
 
     void Questify_Click(object sender, RoutedEventArgs e)
