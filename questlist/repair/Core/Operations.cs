@@ -113,7 +113,7 @@ static class Operations
     {
         var release = await Releases.LatestAsync(repo, tag).ConfigureAwait(false);
         var installed = AsarInfo.Read(Paths.EquicordAsar);
-        if (installed.Hash == release.Hash && installed.IsQuestList == (repo == Paths.Repo))
+        if (release.Hash != null && installed.Hash == release.Hash && installed.IsQuestList == (repo == Paths.Repo))
         {
             s.State = StepState.Skipped;
             s.Detail = release.Tag;

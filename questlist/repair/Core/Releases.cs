@@ -18,7 +18,7 @@ using System.Web.Script.Serialization;
 
 namespace QuestListRepair.Core;
 
-sealed record Release(string Repo, string Tag, string Hash, string AsarUrl, long Size);
+sealed record Release(string Repo, string Tag, string? Hash, string AsarUrl, long Size);
 
 static class Releases
 {
@@ -50,7 +50,8 @@ static class Releases
             ?? throw new IOException(Strings.T("err_no_asset", repo));
 
         var last = name.Substring(name.LastIndexOf(' ') + 1);
-        var hash = Regex.IsMatch(last, "^[0-9a-f]{40}$") ? last : (string)data["target_commitish"];
+        var commit = (string)data["target_commitish"];
+        var hash = Regex.IsMatch(last, "^[0-9a-f]{40}$") ? last : Regex.IsMatch(commit, "^[0-9a-f]{40}$") ? commit : null;
         return new Release(repo, tag, hash, (string)asset["browser_download_url"], Convert.ToInt64(asset["size"]));
     }
 
@@ -75,7 +76,7 @@ static class Releases
         }
 
         var info = AsarInfo.Read(temp);
-        if (info.Hash != release.Hash)
+        if (info.Hash == null || info.IsQuestList != (release.Repo == Paths.Repo) || (release.Hash != null && info.Hash != release.Hash))
         {
             File.Delete(temp);
             throw new IOException(Strings.T("err_hash"));
@@ -88,7 +89,7 @@ static class Releases
             File.Delete(destination);
         }
         File.Move(temp, destination);
-        Log.Write($"{release.Repo} {release.Tag} saved to {destination} ({new FileInfo(destination).Length} bytes, {release.Hash})");
+        Log.Write($"{release.Repo} {release.Tag} saved to {destination} ({new FileInfo(destination).Length} bytes, {info.Hash})");
     }
 }
 
