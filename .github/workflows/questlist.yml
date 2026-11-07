@@ -1,0 +1,135 @@
+name: QuestList
+
+on:
+    schedule:
+        - cron: "17 */6 * * *"
+    workflow_dispatch:
+    push:
+        branches:
+            - dev
+        paths:
+            - "src/userplugins/questList/**"
+            - "questlist/**"
+            - ".github/workflows/questlist.yml"
+
+permissions:
+    contents: write
+
+concurrency:
+    group: questlist-${{ github.ref }}
+    cancel-in-progress: false
+
+env:
+    FORCE_COLOR: true
+    GH_TOKEN: ${{ github.token }}
+
+jobs:
+    build:
+        name: Sync, build and release
+        runs-on: windows-2025
+        defaults:
+            run:
+                shell: bash
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.QL_SYNC_TOKEN }}
+
+            - name: Sync with Equicord
+              if: github.ref == 'refs/heads/main'
+              id: sync
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git remote add upstream https://github.com/Equicord/Equicord.git
+                  git fetch --no-tags upstream main
+                  git merge --no-edit upstream/main
+                  git push origin HEAD:main
+                  git fetch origin dev
+                  git switch dev
+                  git merge --no-edit main
+                  git push origin HEAD:dev
+                  git switch main
+
+                  head=$(git rev-parse HEAD)
+                  last=$(gh release view --json name --jq .name 2>/dev/null || true)
+                  if [ "${last##* }" = "$head" ]; then
+                      echo "Nothing new since the last release."
+                      echo "skip=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Version
+              if: steps.sync.outputs.skip != 'true'
+              id: version
+              run: |
+                  day=$(date -u -d "-3 hours" +%Y.%-m.%-d)
+                  head=$(git rev-parse HEAD)
+                  if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+                      n=$(gh release list --limit 100 --json tagName,isPrerelease --jq "[.[] | select(.isPrerelease | not) | select(.tagName | startswith(\"v$day.\"))] | length")
+                      version="$day.$((n + 1))"
+                      tag="v$version"
+                      title="QuestList $version $head"
+                      prerelease=false
+                  else
+                      n=$(git rev-list --count origin/main..HEAD)
+                      version="$day-dev.$n"
+                      tag="v$version"
+                      title="QuestList $day dev $n"
+                      prerelease=true
+                  fi
+                  {
+                      echo "version=$version"
+                      echo "tag=$tag"
+                      echo "title=$title"
+                      echo "prerelease=$prerelease"
+                      echo "head=$head"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Building $title"
+
+            - name: Setup PNPM
+              if: steps.sync.outputs.skip != 'true'
+              uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+              with:
+                  runtime: node@v24
+                  require-lockfile: true
+
+            - name: Install dependencies
+              if: steps.sync.outputs.skip != 'true'
+              run: pnpm install --frozen-lockfile
+
+            - name: Build Equicord with QuestList
+              if: steps.sync.outputs.skip != 'true'
+              run: pnpm buildStandalone
+
+            - name: Check the build
+              if: steps.sync.outputs.skip != 'true'
+              run: |
+                  asar=dist/desktop.asar
+                  test -s "$asar" || { echo "::error::$asar is missing"; exit 1; }
+                  grep -q -a "vc-questlist" "$asar" || { echo "::error::QuestList is not in the build"; exit 1; }
+                  grep -q -a "tvnclr/Equicord-QuestList" "$asar" || { echo "::error::The updater does not point at this repository"; exit 1; }
+                  grep -q -a "${{ steps.version.outputs.head }}" "$asar" || { echo "::error::The build hash does not match the commit"; exit 1; }
+                  echo "desktop.asar: $(stat -c %s "$asar") bytes, QuestList and updater OK"
+
+            - name: Release
+              if: steps.sync.outputs.skip != 'true'
+              run: |
+                  tag="${{ steps.version.outputs.tag }}"
+                  if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
+                      notes="Test build of QuestList ${{ steps.version.outputs.version }}. It may have bugs. Installs from this build do not update themselves to other test builds."
+                      flags="--prerelease"
+                  else
+                      notes="QuestList ${{ steps.version.outputs.version }}, built on Equicord commit ${{ steps.version.outputs.head }}."
+                      flags="--latest"
+                  fi
+                  if gh release view "$tag" > /dev/null 2>&1; then
+                      gh release upload "$tag" dist/desktop.asar --clobber
+                  else
+                      gh release create "$tag" dist/desktop.asar \
+                          --target "${{ steps.version.outputs.head }}" \
+                          --title "${{ steps.version.outputs.title }}" \
+                          --notes "$notes" $flags
+                  fi
