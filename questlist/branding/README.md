@@ -6,4 +6,6 @@
 - `icon-512.png`: `icon.svg` at 512 px.
 - `banner.png`: README banner, 1024 × 500.
 
-Accent color: Red, `#FF8E86` on dark surfaces and `#C0282D` on light ones.
+- `screenshots/`: setup screenshots used in the main README.
+
+Accent color: Red. `#D93A42` fills actions and `#F2555C` is used for text and icons on the dark surfaces.
