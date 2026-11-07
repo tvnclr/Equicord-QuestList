@@ -163,7 +163,7 @@ static class Operations
             {
                 CloseStep(_ => { }),
                 BackupStep(install ? "install" : "repair"),
-                DownloadStep(Paths.Repo),
+                DownloadStep(Paths.Repo, Setup.ReleaseTag),
                 InjectStep(),
                 PluginsStep(Strings.T("step_plugins"), changes),
                 StartStep(() => start),
