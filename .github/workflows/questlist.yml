@@ -77,6 +77,11 @@ jobs:
                       prerelease=false
                   else
                       n=$(git rev-list --count origin/main..HEAD)
+                      if [ "$n" = 0 ]; then
+                          echo "dev has nothing that main does not have."
+                          echo "skip=true" >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
                       version="$day-dev.$n"
                       numeric="$day.$n"
                       tag="v$version"
@@ -94,22 +99,22 @@ jobs:
                   echo "Building $title"
 
             - name: Setup PNPM
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
               with:
                   runtime: node@v24
                   require-lockfile: true
 
             - name: Install dependencies
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: pnpm install --frozen-lockfile
 
             - name: Build Equicord with QuestList
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: pnpm buildStandalone
 
             - name: Check the build
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: |
                   asar=dist/desktop.asar
                   test -s "$asar" || { echo "::error::$asar is missing"; exit 1; }
@@ -119,11 +124,11 @@ jobs:
                   echo "desktop.asar: $(stat -c %s "$asar") bytes, QuestList and updater OK"
 
             - name: Build QuestList Repair
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: dotnet build questlist/repair -c Release -nologo -p:Version=${{ steps.version.outputs.numeric }} -p:InformationalVersion=${{ steps.version.outputs.version }}
 
             - name: Check the app strings
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               shell: pwsh
               run: |
                   $p = Start-Process questlist/repair/bin/Release/net48/QuestListRepair.exe -ArgumentList "--check-strings", "--out", "strings.txt" -Wait -PassThru
@@ -131,11 +136,11 @@ jobs:
                   exit $p.ExitCode
 
             - name: Make the installer
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: cp questlist/repair/bin/Release/net48/QuestListRepair.exe QuestList-Setup.exe
 
             - name: Release
-              if: steps.sync.outputs.skip != 'true'
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: |
                   tag="${{ steps.version.outputs.tag }}"
                   if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
