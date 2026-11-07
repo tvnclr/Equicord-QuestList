@@ -58,6 +58,7 @@ static class Releases
     public static async Task DownloadAsync(Release release, string destination, IProgress<double>? progress)
     {
         var temp = destination + ".download";
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         using (var response = await Http.GetAsync(release.AsarUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
         {
             response.EnsureSuccessStatusCode();
@@ -82,7 +83,6 @@ static class Releases
             throw new IOException(Strings.T("err_hash"));
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         if (File.Exists(destination))
         {
             File.Copy(destination, destination + ".bak", true);
