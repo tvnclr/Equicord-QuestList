@@ -20,9 +20,9 @@ static class Ui
     public static void AnimateOrbs(TranslateTransform move1, ScaleTransform scale1, TranslateTransform move2, ScaleTransform scale2)
     {
         if (!SystemParameters.ClientAreaAnimation) return;
-        void Drift(Animatable target, DependencyProperty property, double to, double seconds, bool reverse)
+        void Drift(Animatable target, DependencyProperty property, double from, double to, double seconds)
         {
-            var animation = new DoubleAnimation(reverse ? to : 0, reverse ? 0 : to, TimeSpan.FromSeconds(seconds))
+            var animation = new DoubleAnimation(from, to, TimeSpan.FromSeconds(seconds))
             {
                 AutoReverse = true,
                 RepeatBehavior = RepeatBehavior.Forever,
@@ -30,14 +30,14 @@ static class Ui
             };
             target.BeginAnimation(property, animation);
         }
-        Drift(move1, TranslateTransform.XProperty, -90, 24, false);
-        Drift(move1, TranslateTransform.YProperty, 70, 24, false);
-        Drift(scale1, ScaleTransform.ScaleXProperty, 1.18, 24, false);
-        Drift(scale1, ScaleTransform.ScaleYProperty, 1.18, 24, false);
-        Drift(move2, TranslateTransform.XProperty, 110, 31, true);
-        Drift(move2, TranslateTransform.YProperty, -60, 31, true);
-        Drift(scale2, ScaleTransform.ScaleXProperty, 1.15, 31, true);
-        Drift(scale2, ScaleTransform.ScaleYProperty, 1.15, 31, true);
+        Drift(move1, TranslateTransform.XProperty, 0, -90, 24);
+        Drift(move1, TranslateTransform.YProperty, 0, 70, 24);
+        Drift(scale1, ScaleTransform.ScaleXProperty, 1, 1.18, 24);
+        Drift(scale1, ScaleTransform.ScaleYProperty, 1, 1.18, 24);
+        Drift(move2, TranslateTransform.XProperty, 110, 0, 31);
+        Drift(move2, TranslateTransform.YProperty, -60, 0, 31);
+        Drift(scale2, ScaleTransform.ScaleXProperty, 1.15, 1, 31);
+        Drift(scale2, ScaleTransform.ScaleYProperty, 1.15, 1, 31);
     }
 
     public static void RenderSteps(Panel list, Operation operation)
