@@ -1,5 +1,7 @@
 # Equicord-QuestList
 
+<p align="center"><img src="../questlist/branding/banner.png" alt="QuestList banner" width="720"></p>
+
 A fork of [Equicord](https://github.com/Equicord/Equicord) that ships the **QuestList** plugin and updates itself from this repository.
 
 > **Work in progress.** There is no release yet. Until then, this README is a placeholder.
