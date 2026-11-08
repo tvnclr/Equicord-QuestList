@@ -109,6 +109,10 @@ jobs:
               if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: pnpm install --frozen-lockfile
 
+            - name: Check types
+              if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
+              run: pnpm testTsc
+
             - name: Build Equicord with QuestList
               if: steps.sync.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
               run: pnpm buildStandalone

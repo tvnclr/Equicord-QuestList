@@ -469,7 +469,7 @@ function QuestAction({ row, close, refresh, NativeCta }: ActionProps) {
                         await questify.onClick();
                     } catch (e) {
                         console.error("[QuestList] Questify action failed", e);
-                        showToast(`Questify: ${e instanceof Error ? e.message : "action failed"}`, "failure");
+                        showToast({ text: `Questify: ${e instanceof Error ? e.message : "action failed"}`, variant: "critical" });
                     } finally {
                         setBusy(false);
                         refresh();
