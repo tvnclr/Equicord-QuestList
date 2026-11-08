@@ -19,12 +19,15 @@
  *  Este plugin não tem lógica de conclusão própria, não faz chamada de API e não aplica patch.
  */
 
+import { showNotice } from "@api/Notices";
 import { isPluginEnabled, plugins } from "@api/PluginManager";
 import { addServerListElement, removeServerListElement, ServerListRenderPosition } from "@api/ServerList";
 import { definePluginSettings, Settings, useSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
+import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
+import { updateError } from "@utils/updater";
 import type { Quest } from "@vencord/discord-types";
 import { DefaultExtractAndLoadChunksRegex, extractAndLoadChunksLazy, filters, find, findByCodeLazy } from "@webpack";
 import { closeModal, Modal, NavigationRouter, openModal, QuestStore, showToast, Tooltip, useEffect, useReducer, useRef, UserStore, useState, useStateFromStores } from "@webpack/common";
@@ -834,6 +837,21 @@ function QuestListButton() {
     );
 }
 
+const updateRetryMinutes = [1, 5, 15, 30];
+let updateRetryTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function retryUpdate(attempt: number) {
+    if (updateError !== undefined) {
+        const fetched = await VencordNative.updater.fetchUpdate();
+        if (fetched.ok && !fetched.value) return;
+        if (fetched.ok && (await VencordNative.updater.applyUpdate()).ok) {
+            if (Settings.autoUpdateNotification) showNotice("Equicord has been updated!", "Restart", relaunch);
+            return;
+        }
+    }
+    if (++attempt < updateRetryMinutes.length) updateRetryTimer = setTimeout(retryUpdate, updateRetryMinutes[attempt] * 60_000, attempt);
+}
+
 export default definePlugin({
     name: "QuestList",
     description: "Vertical list of every quest with search. Rows use Questify's button for auto-complete and Discord's own quest buttons (Claim Reward, Launch Mission...) for the rest. No Discord patches.",
@@ -847,9 +865,12 @@ export default definePlugin({
 
     start() {
         addServerListElement(ServerListRenderPosition.Above, this.renderButton);
+        if (!IS_DEV && !IS_WEB && !IS_UPDATER_DISABLED && Settings.autoUpdate)
+            updateRetryTimer = setTimeout(retryUpdate, updateRetryMinutes[0] * 60_000, 0);
     },
 
     stop() {
         removeServerListElement(ServerListRenderPosition.Above, this.renderButton);
+        clearTimeout(updateRetryTimer);
     },
 });

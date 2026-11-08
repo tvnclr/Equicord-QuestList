@@ -120,9 +120,8 @@ async function syncSettings() {
 }
 
 let notifiedForUpdatesThisSession = false;
-const updateRetryMinutes = [1, 5, 15, 30];
 
-async function runUpdateCheck(attempt = 0) {
+async function runUpdateCheck() {
     if (IS_UPDATER_DISABLED) return;
 
     try {
@@ -154,8 +153,6 @@ async function runUpdateCheck(attempt = 0) {
         );
     } catch (err) {
         UpdateLogger.error("Failed to check for updates", err);
-        if (attempt < updateRetryMinutes.length)
-            setTimeout(() => runUpdateCheck(attempt + 1), updateRetryMinutes[attempt] * 60_000);
     }
 }
 
