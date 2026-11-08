@@ -23,6 +23,7 @@ import { showNotification } from "@api/Notifications";
 import { isPluginEnabled, plugins } from "@api/PluginManager";
 import { addServerListElement, removeServerListElement, ServerListRenderPosition } from "@api/ServerList";
 import { definePluginSettings, Settings, useSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import { relaunch } from "@utils/native";
@@ -840,8 +841,30 @@ function QuestListButton() {
 const updateRetryMinutes = [1, 5, 15, 30];
 let updateRetryTimer: ReturnType<typeof setTimeout> | undefined;
 
+const updateIcon = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 66 66"><g fill="none" stroke="#F2555C" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-12 54 54)"><mask id="ko" maskUnits="userSpaceOnUse" x="0" y="0" width="108" height="108"><rect width="108" height="108" fill="#FFFFFF"/><circle cx="64" cy="64" r="12.2" fill="#000000"/><path d="M69 69 L73.5 73.5" stroke="#000000" stroke-width="10.4" stroke-linecap="round"/></mask><g mask="url(#ko)"><path d="M44.8 34 H63.2 A10.8 10.8 0 0 1 74 44.8 V63.2 A10.8 10.8 0 0 1 63.2 74 H44.8 A10.8 10.8 0 0 1 34 63.2 V44.8 A10.8 10.8 0 0 1 44.8 34 Z" stroke-width="4"/><path d="M43.5 45 h0.01" stroke-width="4.6"/><path d="M50 45 H64.5" stroke-width="3.4"/><path d="M43.5 54 h0.01" stroke-width="4.6"/><path d="M50 54 H64.5" stroke-width="3.4"/><path d="M43.5 63 h0.01" stroke-width="4.6"/><path d="M50 63 H54" stroke-width="3.4"/></g><circle cx="64" cy="64" r="7" stroke-width="3.4"/><path d="M69 69 L73.5 73.5" stroke-width="3.4"/></g><path d="M71 31 L73.5 28.5 M75.5 40 L79.5 39 M61 27 L62 23.5" stroke-width="3.4"/></g></svg>')}`;
+
 function notifyUpdated() {
-    if (Settings.autoUpdateNotification) showNotification({ title: "Equicord has been updated!", body: "Click here to restart.", permanent: true, noPersist: true, onClick: relaunch });
+    if (!Settings.autoUpdateNotification) return;
+    let later = false;
+    const notification = {
+        title: "QuestList updated",
+        body: "Restart Discord to use the new version.",
+        icon: updateIcon,
+        className: cl("update"),
+        permanent: true,
+        noPersist: true,
+        onClick: () => later || relaunch(),
+        richBody: (
+            <div className={cl("update-body")}>
+                Restart Discord to use the new version.
+                <div className={cl("update-actions")}>
+                    <Button variant="secondary" size="small" onClick={() => later = true}>Later</Button>
+                    <Button variant="dangerPrimary" size="small">Restart now</Button>
+                </div>
+            </div>
+        )
+    };
+    showNotification(notification);
 }
 
 async function retryUpdate(attempt: number) {
