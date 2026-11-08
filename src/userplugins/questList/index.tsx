@@ -19,7 +19,7 @@
  *  Este plugin não tem lógica de conclusão própria, não faz chamada de API e não aplica patch.
  */
 
-import { showNotice } from "@api/Notices";
+import { showNotification } from "@api/Notifications";
 import { isPluginEnabled, plugins } from "@api/PluginManager";
 import { addServerListElement, removeServerListElement, ServerListRenderPosition } from "@api/ServerList";
 import { definePluginSettings, Settings, useSettings } from "@api/Settings";
@@ -27,7 +27,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { classNameFactory } from "@utils/css";
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
-import { updateError } from "@utils/updater";
+import { changes, isOutdated, updateError } from "@utils/updater";
 import type { Quest } from "@vencord/discord-types";
 import { DefaultExtractAndLoadChunksRegex, extractAndLoadChunksLazy, filters, find, findByCodeLazy } from "@webpack";
 import { closeModal, Modal, NavigationRouter, openModal, QuestStore, showToast, Tooltip, useEffect, useReducer, useRef, UserStore, useState, useStateFromStores } from "@webpack/common";
@@ -840,14 +840,19 @@ function QuestListButton() {
 const updateRetryMinutes = [1, 5, 15, 30];
 let updateRetryTimer: ReturnType<typeof setTimeout> | undefined;
 
+function notifyUpdated() {
+    if (Settings.autoUpdateNotification) showNotification({ title: "Equicord has been updated!", body: "Click here to restart.", permanent: true, noPersist: true, onClick: relaunch });
+}
+
 async function retryUpdate(attempt: number) {
+    if (updateError === undefined && changes) {
+        if (changes.length && !isOutdated) notifyUpdated();
+        return;
+    }
     if (updateError !== undefined) {
         const fetched = await VencordNative.updater.fetchUpdate();
         if (fetched.ok && !fetched.value) return;
-        if (fetched.ok && (await VencordNative.updater.applyUpdate()).ok) {
-            if (Settings.autoUpdateNotification) showNotice("Equicord has been updated!", "Restart", relaunch);
-            return;
-        }
+        if (fetched.ok && (await VencordNative.updater.applyUpdate()).ok) return notifyUpdated();
     }
     if (++attempt < updateRetryMinutes.length) updateRetryTimer = setTimeout(retryUpdate, updateRetryMinutes[attempt] * 60_000, attempt);
 }
