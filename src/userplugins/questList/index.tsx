@@ -845,6 +845,7 @@ const updateIcon = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://
 
 function notifyUpdated() {
     if (!Settings.autoUpdateNotification) return;
+    if (!document.hasFocus()) return window.addEventListener("focus", notifyUpdated, { once: true });
     let later = false;
     const notification = {
         title: "QuestList updated",
@@ -900,5 +901,6 @@ export default definePlugin({
     stop() {
         removeServerListElement(ServerListRenderPosition.Above, this.renderButton);
         clearTimeout(updateRetryTimer);
+        window.removeEventListener("focus", notifyUpdated);
     },
 });
