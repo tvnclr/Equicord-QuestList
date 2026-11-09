@@ -39,11 +39,7 @@ public partial class SetupWindow : Window
         Closing += (_, e) => e.Cancel = busy;
     }
 
-    void ShowPage(FrameworkElement page)
-    {
-        foreach (FrameworkElement child in Pages.Children)
-            child.Visibility = child == page ? Visibility.Visible : Visibility.Collapsed;
-    }
+    void ShowPage(FrameworkElement page) => Ui.ShowPage(Pages, page);
 
     async void Install_Click(object sender, RoutedEventArgs e)
     {

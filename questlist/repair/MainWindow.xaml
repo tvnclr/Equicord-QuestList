@@ -265,7 +265,7 @@
             </DockPanel>
 
             <Grid x:Name="DialogLayer" Visibility="Collapsed" Background="#99000000">
-                <Border Style="{StaticResource CardBorder}" Background="{StaticResource Elevated}" Width="480" Padding="24" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Border x:Name="DialogCard" Style="{StaticResource CardBorder}" Background="{StaticResource Elevated}" Width="480" Padding="24" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <StackPanel>
                         <TextBlock x:Name="DialogTitle" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
                         <TextBlock x:Name="DialogBody" Style="{StaticResource Cap}" Margin="0,4,0,0" />

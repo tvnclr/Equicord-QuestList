@@ -17,6 +17,86 @@ static class Ui
 {
     public static Brush Res(string key) => (Brush)Application.Current.Resources[key];
 
+    public static bool Animate => SystemParameters.ClientAreaAnimation;
+
+    static readonly IEasingFunction EaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+    static DoubleAnimation Tween(double from, double to, int ms) => new(from, to, TimeSpan.FromMilliseconds(ms)) { EasingFunction = EaseOut };
+
+    public static void ShowPage(Panel pages, FrameworkElement page, int direction = 0)
+    {
+        foreach (FrameworkElement child in pages.Children)
+            if (child != page) child.Visibility = Visibility.Collapsed;
+        if (page.Visibility == Visibility.Visible) return;
+        page.Visibility = Visibility.Visible;
+        if (!Animate) return;
+        var move = new TranslateTransform();
+        page.RenderTransform = move;
+        move.BeginAnimation(TranslateTransform.YProperty, Tween(direction == 0 ? 12 : direction * 28, 0, 260));
+        page.BeginAnimation(UIElement.OpacityProperty, Tween(0, 1, 220));
+    }
+
+    static int dialogVersion;
+
+    public static void ShowDialog(FrameworkElement layer, FrameworkElement card)
+    {
+        dialogVersion++;
+        layer.Visibility = Visibility.Visible;
+        if (!Animate) return;
+        var scale = new ScaleTransform();
+        card.RenderTransformOrigin = new Point(0.5, 0.5);
+        card.RenderTransform = scale;
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, Tween(0.94, 1, 240));
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, Tween(0.94, 1, 240));
+        layer.BeginAnimation(UIElement.OpacityProperty, Tween(0, 1, 180));
+    }
+
+    public static void HideDialog(FrameworkElement layer)
+    {
+        if (!Animate)
+        {
+            layer.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var version = dialogVersion;
+        var fade = Tween(layer.Opacity, 0, 140);
+        fade.Completed += (_, _) =>
+        {
+            if (version == dialogVersion) layer.Visibility = Visibility.Collapsed;
+        };
+        layer.BeginAnimation(UIElement.OpacityProperty, fade);
+    }
+
+    public static void Spin(RotateTransform rotate, bool on)
+    {
+        if (!Animate) return;
+        if (on)
+        {
+            rotate.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromMilliseconds(800)) { RepeatBehavior = RepeatBehavior.Forever });
+            return;
+        }
+        var angle = rotate.Angle;
+        var stop = Tween(angle, 360, 200 + (int)((360 - angle) / 360 * 600));
+        stop.FillBehavior = FillBehavior.Stop;
+        rotate.BeginAnimation(RotateTransform.AngleProperty, stop);
+    }
+
+    public static void Pulse(UIElement element)
+    {
+        if (Animate) element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.45, TimeSpan.FromMilliseconds(600)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase() });
+    }
+
+    public static void Reveal(FrameworkElement element)
+    {
+        if (!Animate) return;
+        var scale = new ScaleTransform();
+        element.RenderTransformOrigin = new Point(0.5, 0.5);
+        element.RenderTransform = scale;
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, Tween(0.85, 1, 220));
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, Tween(0.85, 1, 220));
+        element.BeginAnimation(UIElement.OpacityProperty, Tween(0, 1, 220));
+    }
+
     public static void AnimateOrbs(TranslateTransform move1, ScaleTransform scale1, TranslateTransform move2, ScaleTransform scale2)
     {
         if (!SystemParameters.ClientAreaAnimation) return;

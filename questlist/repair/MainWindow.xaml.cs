@@ -24,6 +24,9 @@ public partial class MainWindow : Window
 
     Snapshot? snapshot;
     bool busy;
+    bool refreshing;
+    RadioButton? currentNav;
+    readonly RotateTransform checkSpin = new();
     Action? dialogOk;
     readonly Dictionary<RadioButton, (ContentControl Icon, string Data, FrameworkElement Page)> nav = new();
 
@@ -37,6 +40,7 @@ public partial class MainWindow : Window
         nav[NavBackups] = (NavBackupsIcon, Icons.Archive, BackupsPage);
         nav[NavLog] = (NavLogIcon, Icons.Doc, LogPage);
         nav[NavAbout] = (NavAboutIcon, Icons.Info, AboutPage);
+        currentNav = NavStatus;
 
         ApplyStrings();
         UpdateNavIcons();
@@ -46,7 +50,7 @@ public partial class MainWindow : Window
         {
             PlaceOrbs();
             AnimateOrbs();
-            _ = RefreshAsync();
+            _ = RefreshAsync(true);
         };
         SizeChanged += (_, _) =>
         {
@@ -76,6 +80,9 @@ public partial class MainWindow : Window
         NavAboutText.Text = Strings.T("nav_about");
 
         CheckButton.Content = WithIcon(Icons.Refresh, Strings.T("btn_check"), Res("Text"));
+        var checkIcon = (FrameworkElement)((StackPanel)CheckButton.Content).Children[0];
+        checkIcon.RenderTransformOrigin = new Point(0.5, 0.5);
+        checkIcon.RenderTransform = checkSpin;
         ProblemLogButton.Content = Strings.T("btn_view_log");
         ProblemIcon.Content = Icons.Make(Icons.Alert, Res("Warning"));
         SectionStatus.Text = Strings.T("section_status");
@@ -191,13 +198,40 @@ public partial class MainWindow : Window
 
     void AnimateOrbs() => Ui.AnimateOrbs(Orb1Move, Orb1Scale, Orb2Move, Orb2Scale);
 
-    async Task RefreshAsync()
+    async Task RefreshAsync(bool show = false)
     {
-        var snap = await Task.Run(Snapshot.Take);
-        snapshot = snap;
-        NoteChanges(snap);
-        RenderStatus(snap);
-        RenderActivity();
+        if (refreshing) return;
+        refreshing = true;
+        try
+        {
+            if (show) ShowChecking();
+            var minimum = Task.Delay(show && Ui.Animate ? 800 : 0);
+            var snap = await Task.Run(Snapshot.Take);
+            await minimum;
+            snapshot = snap;
+            NoteChanges(snap);
+            RenderStatus(snap, show);
+            RenderActivity();
+        }
+        finally
+        {
+            if (show) Ui.Spin(checkSpin, false);
+            refreshing = false;
+        }
+    }
+
+    void ShowChecking()
+    {
+        Ui.Spin(checkSpin, true);
+        foreach (Border tile in Tiles.Children)
+        {
+            var pill = (Border)tile.Tag;
+            pill.Background = Res("Elevated");
+            var text = (TextBlock)pill.Child;
+            text.Text = Strings.T("pill_checking");
+            text.Foreground = Res("Text2");
+            Ui.Pulse(pill);
+        }
     }
 
     static void NoteChanges(Snapshot snap)
@@ -217,7 +251,7 @@ public partial class MainWindow : Window
         File.WriteAllLines(file, new[] { "hash=" + (hash ?? Old("hash") ?? ""), "discord=" + (app ?? Old("discord") ?? "") });
     }
 
-    void RenderStatus(Snapshot s)
+    void RenderStatus(Snapshot s, bool reveal = false)
     {
         var ok = s.Problem == Problem.None;
         StatusTitle.Text = Strings.T(ok ? "status_ok" : "status_problem");
@@ -251,6 +285,9 @@ public partial class MainWindow : Window
         var pluginOn = s.QuestList == true && s.Build.IsQuestList;
         Tiles.Children.Add(Tile(Icons.List, Strings.T("tile_questlist"), Strings.T(pluginOn ? "pill_active" : "pill_off"), pluginOn ? Pill.Ok : Pill.Neutral, Strings.T(pluginOn ? "sub_plugin_on" : "sub_plugin_off"), false));
 
+        if (reveal)
+            foreach (Border tile in Tiles.Children) Ui.Reveal((Border)tile.Tag);
+
         QuestifySwitch.IsChecked = s.Questify == true;
         QuestifySwitch.IsEnabled = s.Problem == Problem.None;
         OfficialRow.IsEnabled = s.Discord != null;
@@ -271,7 +308,7 @@ public partial class MainWindow : Window
         var badge = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(12), Background = Res("Elevated"), Child = Icons.Make(icon, kind == Pill.Warn ? Res("Warning") : Res("Text")) };
         DockPanel.SetDock(badge, Dock.Left);
         top.Children.Add(badge);
-        top.Children.Add(new Border
+        var pillBorder = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
@@ -279,14 +316,15 @@ public partial class MainWindow : Window
             Padding = new Thickness(10, 4, 10, 4),
             Background = bg,
             Child = new TextBlock { Text = pill, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = fg },
-        });
+        };
+        top.Children.Add(pillBorder);
 
         var body = new StackPanel();
         body.Children.Add(top);
         body.Children.Add(new TextBlock { Text = title, Style = (Style)Application.Current.Resources["Item"], Margin = new Thickness(0, 12, 0, 0) });
         body.Children.Add(new TextBlock { Text = sub, Style = (Style)Application.Current.Resources[mono ? "MonoText" : "Cap"], TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = sub });
 
-        return new Border { Style = (Style)Application.Current.Resources["CardBorder"], Padding = new Thickness(16), Margin = new Thickness(0, 0, 12, 0), Child = body };
+        return new Border { Style = (Style)Application.Current.Resources["CardBorder"], Padding = new Thickness(16), Margin = new Thickness(0, 0, 12, 0), Child = body, Tag = pillBorder };
     }
 
     void RenderActivity()
@@ -308,19 +346,18 @@ public partial class MainWindow : Window
         }
     }
 
-    void ShowPage(FrameworkElement page)
-    {
-        foreach (FrameworkElement child in Pages.Children)
-            child.Visibility = child == page ? Visibility.Visible : Visibility.Collapsed;
-    }
+    void ShowPage(FrameworkElement page, int direction = 0) => Ui.ShowPage(Pages, page, direction);
 
     void Nav_Checked(object sender, RoutedEventArgs e)
     {
         if (!IsInitialized || sender is not RadioButton button || !nav.TryGetValue(button, out var entry)) return;
         UpdateNavIcons();
+        var keys = nav.Keys.ToList();
+        var direction = currentNav == null ? 0 : Math.Sign(keys.IndexOf(button) - keys.IndexOf(currentNav));
+        currentNav = button;
         if (busy) return;
-        ShowPage(entry.Page);
-        if (entry.Page == StatusPage) _ = RefreshAsync();
+        ShowPage(entry.Page, direction);
+        if (entry.Page == StatusPage) _ = RefreshAsync(true);
         else if (entry.Page == BackupsPage) _ = RenderBackupsAsync();
         else if (entry.Page == LogPage) RenderLog();
     }
@@ -396,7 +433,7 @@ public partial class MainWindow : Window
             }
         }
         dialogOk = onOk;
-        DialogLayer.Visibility = Visibility.Visible;
+        Ui.ShowDialog(DialogLayer, DialogCard);
         DialogOk.Focus();
     }
 
@@ -410,7 +447,7 @@ public partial class MainWindow : Window
 
     void DialogOk_Click(object sender, RoutedEventArgs e)
     {
-        DialogLayer.Visibility = Visibility.Collapsed;
+        Ui.HideDialog(DialogLayer);
         var action = dialogOk;
         dialogOk = null;
         action?.Invoke();
@@ -418,7 +455,7 @@ public partial class MainWindow : Window
 
     void DialogCancel_Click(object sender, RoutedEventArgs e)
     {
-        DialogLayer.Visibility = Visibility.Collapsed;
+        Ui.HideDialog(DialogLayer);
         dialogOk = null;
         if (snapshot != null) QuestifySwitch.IsChecked = snapshot.Questify == true;
     }
@@ -470,10 +507,10 @@ public partial class MainWindow : Window
     void ProgressBack_Click(object sender, RoutedEventArgs e)
     {
         ShowPage(StatusPage);
-        _ = RefreshAsync();
+        _ = RefreshAsync(true);
     }
 
-    void Check_Click(object sender, RoutedEventArgs e) => _ = RefreshAsync();
+    void Check_Click(object sender, RoutedEventArgs e) => _ = RefreshAsync(true);
 
     void Fix_Click(object sender, RoutedEventArgs e) =>
         _ = RunAsync(Operations.Repair(snapshot?.Problem == Problem.NotInstalled, null, true));
