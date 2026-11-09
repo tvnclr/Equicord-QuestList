@@ -39,7 +39,7 @@ Open **Settings › Apps › Installed apps › QuestList › Uninstall**, or **
 - Releases marked **Latest** are the stable builds that installs update to.
 - Releases marked **Pre-release** are test builds. They may have bugs.
 - A new build is made automatically whenever Equicord changes upstream.
-- Discord looks for updates each time it opens. If GitHub does not answer, QuestList tries again after 1, 5, 15 and 30 minutes.
+- Discord looks for updates each time it opens. If GitHub does not answer, QuestList tries again after 1, 5, 15 and 30 minutes, and checks again every 2 hours while Discord is open.
 
 ## Building
 
