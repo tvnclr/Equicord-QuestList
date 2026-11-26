@@ -14,6 +14,7 @@ on:
 
 permissions:
     contents: write
+    actions: write
 
 concurrency:
     group: questlist-${{ github.ref }}
@@ -61,6 +62,9 @@ jobs:
                       echo "Nothing new since the last release."
                       echo "skip=true" >> "$GITHUB_OUTPUT"
                   fi
+
+            - name: Keep upstream workflows off
+              run: gh workflow list --all --json name,state --jq '.[] | select(.state == "active" and .name != "QuestList") | .name' | tr -d '\r' | while read -r name; do gh workflow disable "$name"; done
 
             - name: Version
               if: steps.sync.outputs.skip != 'true'
